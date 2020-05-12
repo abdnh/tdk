@@ -5,7 +5,7 @@ The script can be used either as a library or a command line program.
 
 To use from the command line, run the script with the word you want to look up as an argument:
 
-    > py tdk.py söz
+    > python tdk.py söz
     - söz
      1. [isim] Bir düşünceyi eksiksiz olarak anlatan kelime dizisi, lakırtı, kelam, laf, kavil
      2. Bir veya birkaç heceden oluşan ve anlamı olan ses birliği, kelime, sözcük
@@ -20,7 +20,7 @@ To use from the command line, run the script with the word you want to look up a
 			
 To get pronunciations, run with the `-p` flag:
 
-    > py tdk.py söz -p
+    > python tdk.py söz -p
 
 pronunciations files will be saved in the current working directory under the names `söz_1.wav`, `söz_2.wav`, etc. (depending on how many entries for the word there are).
 
