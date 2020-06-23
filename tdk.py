@@ -135,23 +135,18 @@ def get_examples(word):
 
 def print_from_data(data):
 
-    entry_i = 1
-    for entry in data:
+    for i, entry in enumerate(data):
         if 'anlamlarListe' in entry.keys() and entry['anlamlarListe']:
-
             print(f"- {entry['madde']} ", end='')
             if(len(data) > 1):
-                print(f"({entry_i})")
+                print(f"({i+1})")
             else:
                 print("\n", end='')
-            entry_i += 1
-
-            k = 0
+            
             meanings_list = entry['anlamlarListe']
-            for m in meanings_list:
-
-                k += 1
-                print(f'{k:2}. ', end='')
+            for k, m in enumerate(meanings_list):
+            
+                print(f'{k+1:2}. ', end='')
 
                 # print properties
                 if 'ozelliklerListe' in m.keys() and m['ozelliklerListe']:
