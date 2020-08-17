@@ -1,4 +1,4 @@
-import sys
+import sys, os
 
 import requests
 
@@ -12,196 +12,178 @@ class TDKConnectionError(TDKError):
 class TDKWordNotFound(TDKError):
     pass
 
-def get_pronunciation_links(word):
 
-    r = None
-    try:
-        r = requests.get("https://sozluk.gov.tr/yazim?ara=" + word)
-    except requests.exceptions.RequestException:
-        raise TDKConnectionError("connection failed")
+class TDK():
 
-    j = r.json()
-    if type(j) == list:
-        links = []
-        for w in j:
-            if "seskod" in w.keys():
-                links.append("https://sozluk.gov.tr/ses/" + w["seskod"] + ".wav")
-        return links
-    else:
-        raise TDKWordNotFound(f"'{word}' not found in the dictionary")
+    def __init__(self, word):
+        self.word = word
+        self.data = None
+        self.links = None
 
-def download_pronunciations_from_links(dir, prefix, links):
-
-    paths = []
-    for i in range(len(links)):
-
-        l = links[i]
-        fpath = dir + '/' + prefix + '_' + str(i+1) + l[l.rfind('.'):]
-
-        r = None
+    def semantic_data(self):
+        if self.data:
+            return self.data
         try:
-            r = requests.get(l)
+            r = requests.get('https://sozluk.gov.tr/gts?ara=' + self.word)
         except requests.exceptions.RequestException:
             raise TDKConnectionError("connection failed")
+        j = r.json()
+        if type(j) != list:
+           raise TDKWordNotFound(f"'{self.word}' is not found in the dictionary")
+        self.data = j
+        return self.data
 
-        f = open(fpath, 'wb')
-        f.write(r.content)
-        f.close()
-        paths.append(fpath)
+    def audio_links(self):
+        if self.links:
+            return self.links
+        try:
+            r = requests.get("https://sozluk.gov.tr/yazim?ara=" + self.word)
+        except requests.exceptions.RequestException:
+            raise TDKConnectionError("connection failed")
+        j = r.json()
+        if type(j) == list:
+            self.links = []
+            for w in j:
+                if "seskod" in w.keys():
+                    self.links.append("https://sozluk.gov.tr/ses/" + w["seskod"] + ".wav")
+            return self.links
+        else:
+            raise TDKWordNotFound(f"'{self.word}' is not found in the dictionary")
 
-    return paths
+    def download_audio(self, dir='.', prefix=''):
+        links = self.audio_links()
+        paths = []
+        for i in range(len(links)):
+            l = links[i]
+            fpath = os.path.join(dir, f"{prefix}{self.word}_{i+1}{l[l.rfind('.'):]}")
+            try:
+                r = requests.get(l)
+            except requests.exceptions.RequestException:
+                raise TDKConnectionError("connection failed")
+            f = open(fpath, 'wb')
+            f.write(r.content)
+            f.close()
+            paths.append(fpath)
+        return paths
 
-def download_pronunciations(dir, word):
+    def compound_nouns(self):
+        data = self.semantic_data()
+        nouns = []
+        for entry in data:
+            if 'birlesikler' in entry.keys() and entry['birlesikler']:
+                entry_nouns = entry['birlesikler'].split(',')
+                for n in entry_nouns:
+                    nouns.append(n.strip())
+        return nouns
 
-    links = get_pronunciation_links(word)
-    return download_pronunciations_from_links(dir, word, links)
-
-def get_word_data(word):
-
-    url = 'https://sozluk.gov.tr/gts?ara={0}'
-    r = None
-    try:
-        r = requests.get(url.format(word))
-    except requests.exceptions.RequestException:
-        raise TDKConnectionError("connection failed")
-    j = r.json()
-    if type(j) != list:
-       raise TDKWordNotFound(f"'{word}' not found in the dictionary")
-    return j
-
-def get_compound_nouns_from_data(data):
-
-    nouns = []
-    for entry in data:
-        if 'birlesikler' in entry.keys() and entry['birlesikler']:
-            entry_nouns = entry['birlesikler'].split(',')
-            for n in entry_nouns:
-                nouns.append(n.strip())
-    return nouns
-
-def get_compound_nouns(word):
-
-    data = get_word_data(word)
-    return get_compound_nouns_from_data(data)
-
-def get_expressions_from_data(data):
-
-    expressions = []
-    for entry in data:
-        if 'atasozu' in entry.keys() and entry['atasozu']:
-            for e in entry['atasozu']:
+    def expressions(self):
+        data = self.semantic_data()
+        expressions = []
+        for entry in data:
+            for e in entry.get('atasozu', []):
                 if 'madde' in e.keys() and e['madde']:
                     expressions.append(e['madde'])
-    return expressions
+        return expressions
 
-def get_expressions(word):
-
-    data = get_word_data(word)
-    return get_expressions_from_data(data)
-
-def get_meanings_from_data(data):
-
-    meanings = []
-    for entry in data:
-        if 'anlamlarListe' in entry.keys() and entry['anlamlarListe']:
-            entry_meanings = entry['anlamlarListe']
+    def meanings(self):
+        data = self.semantic_data()
+        meanings = []
+        for entry in data:
+            entry_meanings = entry.get('anlamlarListe', [])
             for m in entry_meanings:
                 if 'anlam' in m.keys() and m['anlam']:
                     meanings.append(m['anlam'])
-    return meanings
+        return meanings
 
-def get_meanings(word):
+    def examples(self):
+        data = self.semantic_data()
+        examples = []
+        for entry in data:
+            for m in entry.get('anlamlarListe', []):
+                for e in m.get('orneklerListe', []):
+                    if 'ornek' in e.keys():
+                        examples.append(e['ornek'])
+        return examples
 
-    data = get_word_data(word)
-    return get_meanings_from_data(data)
+    def pprint(self):
+        data = self.semantic_data()
+        for i, entry in enumerate(data):
+            if 'anlamlarListe' in entry.keys() and entry['anlamlarListe']:
+                print(f"- {entry['madde']} ", end='')
+                if(len(data) > 1):
+                    print(f"({i+1})")
+                else:
+                    print("\n", end='')
+                meanings_list = entry['anlamlarListe']
 
-def get_examples_from_data(data):
+                for k, m in enumerate(meanings_list):
+                    print(f'{k+1:2}. ', end='')
 
-    examples = []
-    for entry in data:
-        if 'anlamlarListe' in entry.keys() and entry['anlamlarListe']:
-            entry_meanings = entry['anlamlarListe']
-            for m in entry_meanings:
-                if 'orneklerListe' in m.keys() and m['orneklerListe']:
-                    for e in m['orneklerListe']:
-                        if 'ornek' in e.keys():
-                            examples.append(e['ornek']);
-    return examples
+                    # print properties
+                    if 'ozelliklerListe' in m.keys() and m['ozelliklerListe']:
+                        properties = m['ozelliklerListe']
+                        print("[", end='')
+                        for i in range(len(properties)):
+                            if 'tam_adi' in properties[i].keys():
+                                print(properties[i]['tam_adi'], end='')
+                                if i < len(properties) - 1:
+                                    print(", ", end='')
+                        print("] ", end='')
 
-def get_examples(word):
+                    # print definition
+                    if 'anlam' in m.keys() and m['anlam']:
+                        print(m['anlam'])
 
-    data = get_word_data(word)
-    return get_examples_from_data(data)
-
-def print_from_data(data):
-
-    for i, entry in enumerate(data):
-        if 'anlamlarListe' in entry.keys() and entry['anlamlarListe']:
-            print(f"- {entry['madde']} ", end='')
-            if(len(data) > 1):
-                print(f"({i+1})")
-            else:
-                print("\n", end='')
-            
-            meanings_list = entry['anlamlarListe']
-            for k, m in enumerate(meanings_list):
-            
-                print(f'{k+1:2}. ', end='')
-
-                # print properties
-                if 'ozelliklerListe' in m.keys() and m['ozelliklerListe']:
-                    properties = m['ozelliklerListe']
-                    print("[", end='')
-                    for i in range(len(properties)):
-                        if 'tam_adi' in properties[i].keys():
-                            print(properties[i]['tam_adi'], end='')
-                            if i < len(properties) - 1:
-                                print(", ", end='')
-                    print("] ", end='')
-
-                # print definition
-                if 'anlam' in m.keys() and m['anlam']:
-                    print(m['anlam'])
-
-                # print examples
-                if 'orneklerListe' in m.keys() and m['orneklerListe']:
-                    for e in m['orneklerListe']:
+                    # print examples
+                    for e in m.get('orneklerListe', []):
                         if 'ornek' in e.keys() and e['ornek']:
                             print('\t"' + e['ornek'] + '"')
 
-def print_word_data(word):
-
-    data = get_word_data(word)
-    print_from_data(data)
 
 def usage():
     print('- usage:\n  ' + sys.executable + ' ' + sys.argv[0] + ' [word] [-p]')
 
 def main():
-
     if len(sys.argv) > 2:
         word = ""
         try:
             if sys.argv[1].lower() == '-p':
                 word = sys.argv[2]
-                download_pronunciations('.', word)
+                TDK(word).download_audio()
             elif sys.argv[2].lower() == '-p':
                 word = sys.argv[1]
-                download_pronunciations('.', word)
+                TDK(word).download_audio()
             else:
                 usage()
         except TDKConnectionError as e:
             print(e)
+            sys.exit(1)
         except TDKWordNotFound as e:
             print(f"no audio files for '{word}' were found in the dictionary")
-
+            sys.exit(1)
     elif len(sys.argv) == 2:
         try:
-            print_word_data(sys.argv[1])
+            TDK(sys.argv[1]).pprint()
         except TDKError as e:
             print(e)
+            sys.exit(1)
     else:
         usage()
+
+def test():
+    words = ['kaymak', '', 'asdsfaf', 'pehpehlemek']
+    for word in words:
+        try:
+            w = TDK(word)
+            print(w.meanings())
+            print(w.examples())
+            print(w.compound_nouns())
+            print(w.expressions())
+            print(w.audio_links())
+            print(w.download_audio())
+            w.pprint()
+        except Exception as e:
+            print(e)
 
 if __name__ == "__main__":
     main()
