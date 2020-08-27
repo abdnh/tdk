@@ -1,4 +1,4 @@
-import sys, os
+import os
 
 import requests
 
@@ -140,35 +140,28 @@ class TDK():
                             print('\t"' + e['ornek'] + '"')
 
 
-def usage():
-    print('- usage:\n  ' + sys.executable + ' ' + sys.argv[0] + ' [word] [-p]')
-
 def main():
-    if len(sys.argv) > 2:
-        word = ""
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("word", help="the word you want to query")
+    parser.add_argument("-p", help="download pronunciations", action="store_true")
+    args = parser.parse_args()
+
+    if args.p:
         try:
-            if sys.argv[1].lower() == '-p':
-                word = sys.argv[2]
-                TDK(word).download_audio()
-            elif sys.argv[2].lower() == '-p':
-                word = sys.argv[1]
-                TDK(word).download_audio()
-            else:
-                usage()
+            TDK(args.word).download_audio()
         except TDKConnectionError as e:
             print(e)
             sys.exit(1)
         except TDKWordNotFound as e:
-            print(f"no audio files for '{word}' were found in the dictionary")
+            print(f"no audio files for '{args.word}' were found in the dictionary")
             sys.exit(1)
-    elif len(sys.argv) == 2:
+    else:
         try:
-            TDK(sys.argv[1]).pprint()
+            TDK(args.word).pprint()
         except TDKError as e:
             print(e)
             sys.exit(1)
-    else:
-        usage()
 
 def test():
     words = ['kaymak', '', 'asdsfaf', 'pehpehlemek']
@@ -186,4 +179,6 @@ def test():
             print(e)
 
 if __name__ == "__main__":
+    import sys
+    import argparse
     main()
