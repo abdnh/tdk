@@ -1,6 +1,7 @@
-A Python 3 script & library to get Turkish words definitions, example sentences, pronunciations, etc. from the [TDK](https://sozluk.gov.tr/) dictionary.
+A Python 3 script & library to get Turkish words definitions, example sentences,
+pronunciations, etc. from the [TDK](https://sozluk.gov.tr/) dictionary.
 
-## Usage:
+## Usage
 The script can be used either as a library or a command line program.
 
 To use from the command line, run the script with the word you want to look up as an argument:
@@ -22,12 +23,8 @@ To get pronunciations, run with the `-p` flag:
 
     > python tdk.py söz -p
 
-pronunciations files will be saved in the current working directory under the names `söz_1.wav`, `söz_2.wav`, etc. (depending on how many entries for the word there are).
+Audio files will be saved in the current working directory under the names `söz_1.wav`, `söz_2.wav`, etc.
 
-## Requirements:
+## Requirements
 * Python 3.6+
 * [requests](https://pypi.org/project/requests/)
-
-## TODO:
-* docs (for now, browse the source for available functions)
-* make "idiomatic"
