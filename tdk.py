@@ -1,33 +1,47 @@
+"""Get Turkish words definitions, example sentences, pronunciations, etc. \
+from the TDK (Türk Dil Kurumu) dictionary."""
+
 import os
 
 import requests
 
 
 class TDKError(Exception):
-    pass
+    """Base class for all module exceptions."""
 
 
 class TDKConnectionError(TDKError):
-    pass
+    """Connection failure, whatever the reason."""
 
 
 class TDKWordNotFound(TDKError):
-    pass
+    """Word not found in the dictionary."""
+
+
+class TDKNoAudio(TDKError):
+    """No audio found in the dictionary."""
+
+
+CONNECTION_FAILED_MSG = "Connection failed"
 
 
 class TDK:
+    """A class representing a dictionary query for a single word."""
+
     def __init__(self, word):
+        """Construct a new TDK object with the given word."""
         self.word = word
         self.data = None
         self.links = None
 
     def semantic_data(self):
+        """Return all raw data about the word in dictionary except audio."""
         if self.data:
             return self.data
         try:
             res = requests.get("https://sozluk.gov.tr/gts?ara=" + self.word)
         except requests.exceptions.RequestException:
-            raise TDKConnectionError("connection failed")
+            raise TDKConnectionError(CONNECTION_FAILED_MSG)
         j = res.json()
         if not isinstance(j, list):
             raise TDKWordNotFound(f"'{self.word}' is not found in the dictionary")
@@ -35,12 +49,13 @@ class TDK:
         return self.data
 
     def audio_links(self):
+        """Return a list of word pronunciation links."""
         if self.links:
             return self.links
         try:
             res = requests.get("https://sozluk.gov.tr/yazim?ara=" + self.word)
         except requests.exceptions.RequestException:
-            raise TDKConnectionError("connection failed")
+            raise TDKConnectionError(CONNECTION_FAILED_MSG)
         j = res.json()
         if isinstance(j, list):
             self.links = []
@@ -50,9 +65,13 @@ class TDK:
                         "https://sozluk.gov.tr/ses/" + word["seskod"] + ".wav"
                     )
             return self.links
-        raise TDKWordNotFound(f"'{self.word}' is not found in the dictionary")
+        raise TDKNoAudio(
+            f"No audio files for '{self.word}' were found in the dictionary"
+        )
 
     def download_audio(self, path=".", prefix=""):
+        """Download word pronunciations to the given path
+        with filenames in the form `{prefix}{word}_{i}.{ext}`."""
         links = self.audio_links()
         paths = []
         for i, link in enumerate(links):
@@ -62,13 +81,14 @@ class TDK:
             try:
                 res = requests.get(link)
             except requests.exceptions.RequestException:
-                raise TDKConnectionError("connection failed")
+                raise TDKConnectionError(CONNECTION_FAILED_MSG)
             with open(fpath, "wb") as buf:
                 buf.write(res.content)
             paths.append(fpath)
         return paths
 
     def compound_nouns(self):
+        """Return a list of compound nouns (birleşik kelimeler) associated with word."""
         data = self.semantic_data()
         nouns = []
         for entry in data:
@@ -79,6 +99,7 @@ class TDK:
         return nouns
 
     def expressions(self):
+        """Return a list of expressions and idioms associated with word."""
         data = self.semantic_data()
         expressions = []
         for entry in data:
@@ -88,6 +109,7 @@ class TDK:
         return expressions
 
     def meanings(self):
+        """Return a list of meanings of word."""
         data = self.semantic_data()
         meanings = []
         for entry in data:
@@ -98,6 +120,7 @@ class TDK:
         return meanings
 
     def examples(self):
+        """Return a list of example sentences of word."""
         data = self.semantic_data()
         examples = []
         for entry in data:
@@ -108,6 +131,7 @@ class TDK:
         return examples
 
     def pprint(self):
+        """Print word data like in a dictionary entry."""
         data = self.semantic_data()
         for i, entry in enumerate(data):
             if "anlamlarListe" in entry.keys() and entry["anlamlarListe"]:
@@ -155,11 +179,8 @@ def main():
     if args.p:
         try:
             TDK(args.word).download_audio()
-        except TDKConnectionError as exc:
+        except TDKError as exc:
             print(exc)
-            sys.exit(1)
-        except TDKWordNotFound:
-            print(f"no audio files for '{args.word}' were found in the dictionary")
             sys.exit(1)
     else:
         try:
