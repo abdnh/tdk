@@ -36,8 +36,9 @@ class TDK:
         self.data = None
         self.links = None
 
+    @property
     def semantic_data(self):
-        """Return all raw data about the word in dictionary except audio."""
+        """All raw data about the word in the dictionary except audio."""
         if self.data:
             return self.data
         try:
@@ -50,8 +51,9 @@ class TDK:
         self.data = j
         return self.data
 
+    @property
     def audio_links(self):
-        """Return a list of word pronunciation links."""
+        """A list of pronunciation links."""
         if self.links:
             return self.links
         try:
@@ -72,11 +74,12 @@ class TDK:
         )
 
     def download_audio(self, path=".", prefix=""):
-        """Download word pronunciations to the given path
-        with filenames in the form `{prefix}{word}_{i}.{ext}`."""
-        links = self.audio_links()
+        """
+        Download pronunciations to the given path
+        with filenames in the form `{prefix}{word}_{i}.{ext}`.
+        """
         paths = []
-        for i, link in enumerate(links):
+        for i, link in enumerate(self.audio_links):
             fpath = os.path.join(
                 path, f"{prefix}{self.word}_{i+1}{link[link.rfind('.'):]}"
             )
@@ -89,43 +92,43 @@ class TDK:
             paths.append(fpath)
         return paths
 
+    @property
     def compound_nouns(self):
-        """Return a list of compound nouns (birleşik kelimeler) associated with word."""
-        data = self.semantic_data()
+        """A list of compound nouns (birleşik kelimeler) associated with word."""
         nouns = []
-        for entry in data:
+        for entry in self.semantic_data:
             if "birlesikler" in entry.keys() and entry["birlesikler"]:
                 entry_nouns = entry["birlesikler"].split(",")
                 for noun in entry_nouns:
                     nouns.append(noun.strip())
         return nouns
 
+    @property
     def expressions(self):
-        """Return a list of expressions and idioms associated with word."""
-        data = self.semantic_data()
+        """A list of expressions and idioms associated with word."""
         expressions = []
-        for entry in data:
+        for entry in self.semantic_data:
             for exp in entry.get("atasozu", []):
                 if "madde" in exp.keys() and exp["madde"]:
                     expressions.append(exp["madde"])
         return expressions
 
+    @property
     def meanings(self):
-        """Return a list of meanings of word."""
-        data = self.semantic_data()
+        """A list of meanings of word."""
         meanings = []
-        for entry in data:
+        for entry in self.semantic_data:
             entry_meanings = entry.get("anlamlarListe", [])
             for meaning in entry_meanings:
                 if "anlam" in meaning.keys() and meaning["anlam"]:
                     meanings.append(meaning["anlam"])
         return meanings
 
+    @property
     def examples(self):
-        """Return a list of example sentences of word."""
-        data = self.semantic_data()
+        """A list of example sentences of word."""
         examples = []
-        for entry in data:
+        for entry in self.semantic_data:
             for meaning in entry.get("anlamlarListe", []):
                 for example in meaning.get("orneklerListe", []):
                     if "ornek" in example.keys():
@@ -134,7 +137,7 @@ class TDK:
 
     def pprint(self):
         """Print word data like in a dictionary entry."""
-        data = self.semantic_data()
+        data = self.semantic_data
         for i, entry in enumerate(data):
             if "anlamlarListe" in entry.keys() and entry["anlamlarListe"]:
                 print(f"- {entry['madde']} ", end="")
@@ -192,18 +195,28 @@ def main():
             sys.exit(1)
 
 
-def test():
-    words = ["kaymak", "", "asdsfaf", "pehpehlemek"]
+def demo():
+    from random import shuffle
+
+    words = ["kaymak", "", "asdsfaf", "pehpehlemek", "yapmak", "demek"]
+    methods = [
+        ["tdk.meanings", lambda self: self.meanings],
+        ["tdk.examples", lambda self: self.examples],
+        ["tdk.compound_nouns", lambda self: self.compound_nouns],
+        ["tdk.expressions", lambda self: self.expressions],
+        ["tdk.audio_links", lambda self: self.audio_links],
+        ["tdk.download_audio", lambda self: self.download_audio()],
+        ["tdk.pprint", lambda self: self.pprint()],
+    ]
     for word in words:
         try:
-            w = TDK(word)
-            print(w.meanings())
-            print(w.examples())
-            print(w.compound_nouns())
-            print(w.expressions())
-            print(w.audio_links())
-            print(w.download_audio())
-            w.pprint()
+            print(f'--- "{word}" ---')
+            tdk = TDK(word)
+            shuffle(methods)
+            for mth in methods:
+                print(mth[0] + ": ", end="")
+                print(mth[1](tdk))
+                print("\n", end="")
         except TDKError as exc:
             print(exc)
 
