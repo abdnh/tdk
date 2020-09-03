@@ -1,5 +1,7 @@
-"""Get Turkish words definitions, example sentences, pronunciations, etc. \
-from the TDK (Türk Dil Kurumu) dictionary."""
+"""
+Get Turkish words definitions, example sentences, pronunciations, etc.
+from the TDK (Türk Dil Kurumu) dictionary.
+"""
 
 import os
 
@@ -7,19 +9,19 @@ import requests
 
 
 class TDKError(Exception):
-    """Base class for all module exceptions."""
+    pass
 
 
-class TDKConnectionError(TDKError):
-    """Connection failure, whatever the reason."""
+class NetworkError(TDKError):
+    pass
 
 
-class TDKWordNotFound(TDKError):
-    """Word not found in the dictionary."""
+class WordNotFoundError(TDKError):
+    pass
 
 
-class TDKNoAudio(TDKError):
-    """No audio found in the dictionary."""
+class NoAudioError(TDKError):
+    pass
 
 
 CONNECTION_FAILED_MSG = "Connection failed"
@@ -41,10 +43,10 @@ class TDK:
         try:
             res = requests.get("https://sozluk.gov.tr/gts?ara=" + self.word)
         except requests.exceptions.RequestException:
-            raise TDKConnectionError(CONNECTION_FAILED_MSG)
+            raise NetworkError(CONNECTION_FAILED_MSG)
         j = res.json()
         if not isinstance(j, list):
-            raise TDKWordNotFound(f"'{self.word}' is not found in the dictionary")
+            raise WordNotFoundError(f"'{self.word}' is not found in the dictionary")
         self.data = j
         return self.data
 
@@ -55,7 +57,7 @@ class TDK:
         try:
             res = requests.get("https://sozluk.gov.tr/yazim?ara=" + self.word)
         except requests.exceptions.RequestException:
-            raise TDKConnectionError(CONNECTION_FAILED_MSG)
+            raise NetworkError(CONNECTION_FAILED_MSG)
         j = res.json()
         if isinstance(j, list):
             self.links = []
@@ -65,7 +67,7 @@ class TDK:
                         "https://sozluk.gov.tr/ses/" + word["seskod"] + ".wav"
                     )
             return self.links
-        raise TDKNoAudio(
+        raise NoAudioError(
             f"No audio files for '{self.word}' were found in the dictionary"
         )
 
@@ -81,7 +83,7 @@ class TDK:
             try:
                 res = requests.get(link)
             except requests.exceptions.RequestException:
-                raise TDKConnectionError(CONNECTION_FAILED_MSG)
+                raise NetworkError(CONNECTION_FAILED_MSG)
             with open(fpath, "wb") as buf:
                 buf.write(res.content)
             paths.append(fpath)
