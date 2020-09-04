@@ -3,9 +3,9 @@ Get Turkish words definitions, example sentences, pronunciations, etc.
 from the TDK (Türk Dil Kurumu) dictionary.
 """
 
+import json
 import os
-
-import requests
+from urllib.request import urlopen
 
 
 class TDKError(Exception):
@@ -42,10 +42,10 @@ class TDK:
         if self.data:
             return self.data
         try:
-            res = requests.get("https://sozluk.gov.tr/gts?ara=" + self.word)
-        except requests.exceptions.RequestException:
+            res = urlopen("https://sozluk.gov.tr/gts?ara=" + self.word)
+        except:
             raise NetworkError(CONNECTION_FAILED_MSG)
-        j = res.json()
+        j = json.loads(res.read())
         if not isinstance(j, list):
             raise WordNotFoundError(f"'{self.word}' is not found in the dictionary")
         self.data = j
@@ -57,10 +57,10 @@ class TDK:
         if self.links:
             return self.links
         try:
-            res = requests.get("https://sozluk.gov.tr/yazim?ara=" + self.word)
-        except requests.exceptions.RequestException:
+            res = urlopen("https://sozluk.gov.tr/yazim?ara=" + self.word)
+        except:
             raise NetworkError(CONNECTION_FAILED_MSG)
-        j = res.json()
+        j = json.loads(res.read())
         if isinstance(j, list):
             self.links = []
             for word in j:
@@ -84,11 +84,11 @@ class TDK:
                 path, f"{prefix}{self.word}_{i+1}{link[link.rfind('.'):]}"
             )
             try:
-                res = requests.get(link)
-            except requests.exceptions.RequestException:
+                res = urlopen(link)
+            except:
                 raise NetworkError(CONNECTION_FAILED_MSG)
             with open(fpath, "wb") as buf:
-                buf.write(res.content)
+                buf.write(res.read())
             paths.append(fpath)
         return paths
 

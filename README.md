@@ -29,4 +29,3 @@ See [tdk.py](tdk.py) for docs and available functions.
 
 ## Requirements
 * Python 3.6+
-* [requests](https://pypi.org/project/requests/)
