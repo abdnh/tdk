@@ -43,8 +43,8 @@ class TDK:
             return self.data
         try:
             res = urlopen("https://sozluk.gov.tr/gts?ara=" + self.word)
-        except:
-            raise NetworkError(CONNECTION_FAILED_MSG)
+        except Exception as exc:
+            raise NetworkError(CONNECTION_FAILED_MSG) from exc
         j = json.loads(res.read())
         if not isinstance(j, list):
             raise WordNotFoundError(f"'{self.word}' is not found in the dictionary")
@@ -58,8 +58,8 @@ class TDK:
             return self.links
         try:
             res = urlopen("https://sozluk.gov.tr/yazim?ara=" + self.word)
-        except:
-            raise NetworkError(CONNECTION_FAILED_MSG)
+        except Exception as exc:
+            raise NetworkError(CONNECTION_FAILED_MSG) from exc
         j = json.loads(res.read())
         if isinstance(j, list):
             self.links = []
@@ -85,8 +85,8 @@ class TDK:
             )
             try:
                 res = urlopen(link)
-            except:
-                raise NetworkError(CONNECTION_FAILED_MSG)
+            except Exception as exc:
+                raise NetworkError(CONNECTION_FAILED_MSG) from exc
             with open(fpath, "wb") as buf:
                 buf.write(res.read())
             paths.append(fpath)
