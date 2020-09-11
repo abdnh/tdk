@@ -7,6 +7,14 @@ import json
 import os
 from urllib.request import urlopen
 
+__all__ = [
+    "TDK",
+    "TDKError",
+    "NetworkError",
+    "WordNotFoundError",
+    "NoAudioError",
+]
+
 
 class TDKError(Exception):
     pass
