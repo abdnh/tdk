@@ -5,6 +5,7 @@ from the TDK (Türk Dil Kurumu) dictionary.
 
 import json
 import os
+from typing import Any, List, Union
 from urllib.request import urlopen
 
 __all__ = [
@@ -38,14 +39,14 @@ CONNECTION_FAILED_MSG = "Connection failed"
 class TDK:
     """A class representing a dictionary query for a single word."""
 
-    def __init__(self, word):
+    def __init__(self, word: str) -> None:
         """Construct a new TDK object with the given word."""
         self.word = word
-        self.data = None
-        self.links = None
+        self.data: Union[List[Any], None] = None
+        self.links: List[str] = []
 
     @property
-    def semantic_data(self):
+    def semantic_data(self) -> List[Any]:
         """All raw data about the word in the dictionary except audio."""
         if self.data:
             return self.data
@@ -60,7 +61,7 @@ class TDK:
         return self.data
 
     @property
-    def audio_links(self):
+    def audio_links(self) -> List[str]:
         """A list of pronunciation links."""
         if self.links:
             return self.links
@@ -70,7 +71,6 @@ class TDK:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
         j = json.loads(res.read())
         if isinstance(j, list):
-            self.links = []
             for word in j:
                 if "seskod" in word.keys():
                     self.links.append(
@@ -81,7 +81,7 @@ class TDK:
             f"No audio files for '{self.word}' were found in the dictionary"
         )
 
-    def download_audio(self, path=".", prefix=""):
+    def download_audio(self, path: str = ".", prefix: str = "") -> List[str]:
         """
         Download pronunciations to the given path
         with filenames in the form `{prefix}{word}_{i}.{ext}`.
@@ -101,7 +101,7 @@ class TDK:
         return paths
 
     @property
-    def compound_nouns(self):
+    def compound_nouns(self) -> List[str]:
         """A list of compound nouns (birleşik kelimeler) associated with word."""
         nouns = []
         for entry in self.semantic_data:
@@ -112,7 +112,7 @@ class TDK:
         return nouns
 
     @property
-    def expressions(self):
+    def expressions(self) -> List[str]:
         """A list of expressions and idioms associated with word."""
         expressions = []
         for entry in self.semantic_data:
@@ -122,7 +122,7 @@ class TDK:
         return expressions
 
     @property
-    def meanings(self):
+    def meanings(self) -> List[str]:
         """A list of meanings of word."""
         meanings = []
         for entry in self.semantic_data:
@@ -133,7 +133,7 @@ class TDK:
         return meanings
 
     @property
-    def examples(self):
+    def examples(self) -> List[str]:
         """A list of example sentences of word."""
         examples = []
         for entry in self.semantic_data:
