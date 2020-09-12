@@ -72,7 +72,7 @@ class TDK:
         j = json.loads(res.read())
         if isinstance(j, list):
             for word in j:
-                if "seskod" in word.keys():
+                if "seskod" in word.keys() and word["seskod"]:
                     self.links.append(
                         "https://sozluk.gov.tr/ses/" + word["seskod"] + ".wav"
                     )
