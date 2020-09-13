@@ -5,7 +5,7 @@ from the TDK (Türk Dil Kurumu) dictionary.
 
 import json
 import os
-from typing import Any, List, Union
+from typing import Dict, List, Union
 from urllib.request import urlopen
 
 __all__ = [
@@ -42,11 +42,11 @@ class TDK:
     def __init__(self, word: str) -> None:
         """Construct a new TDK object with the given word."""
         self.word = word
-        self.data: Union[List[Any], None] = None
+        self.data: Union[List[Dict], None] = None
         self.links: List[str] = []
 
     @property
-    def semantic_data(self) -> List[Any]:
+    def semantic_data(self) -> List[Dict]:
         """All raw data about the word in the dictionary except audio."""
         if self.data:
             return self.data
@@ -143,7 +143,7 @@ class TDK:
                         examples.append(example["ornek"])
         return examples
 
-    def pprint(self):
+    def pprint(self) -> None:
         """Print word data like in a dictionary entry."""
         data = self.semantic_data
         for i, entry in enumerate(data):
@@ -208,13 +208,13 @@ def demo():
 
     words = ["kaymak", "", "asdsfaf", "pehpehlemek", "yapmak", "demek"]
     methods = [
-        ["tdk.meanings", lambda self: self.meanings],
-        ["tdk.examples", lambda self: self.examples],
-        ["tdk.compound_nouns", lambda self: self.compound_nouns],
-        ["tdk.expressions", lambda self: self.expressions],
-        ["tdk.audio_links", lambda self: self.audio_links],
-        ["tdk.download_audio", lambda self: self.download_audio()],
-        ["tdk.pprint", lambda self: self.pprint()],
+        ("tdk.meanings", lambda self: self.meanings),
+        ("tdk.examples", lambda self: self.examples),
+        ("tdk.compound_nouns", lambda self: self.compound_nouns),
+        ("tdk.expressions", lambda self: self.expressions),
+        ("tdk.audio_links", lambda self: self.audio_links),
+        ("tdk.download_audio", lambda self: self.download_audio()),
+        ("tdk.pprint", lambda self: self.pprint()),
     ]
     for word in words:
         try:
