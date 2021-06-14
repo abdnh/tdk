@@ -5,8 +5,9 @@ from the TDK (Türk Dil Kurumu) dictionary.
 
 import json
 import os
-from typing import Dict, List, Union
+from typing import Dict, List, Optional
 from urllib.request import urlopen
+from urllib.error import URLError
 
 __all__ = [
     "TDK",
@@ -42,7 +43,7 @@ class TDK:
     def __init__(self, word: str) -> None:
         """Construct a new TDK object with the given word."""
         self.word = word
-        self.data: Union[List[Dict], None] = None
+        self.data: Optional[List[Dict]] = None
         self.links: List[str] = []
 
     @property
@@ -51,13 +52,14 @@ class TDK:
         if self.data:
             return self.data
         try:
-            res = urlopen("https://sozluk.gov.tr/gts?ara=" + self.word)
-        except Exception as exc:
+            with urlopen("https://sozluk.gov.tr/gts?ara=" + self.word) as res:
+                j = json.loads(res.read())
+                if not isinstance(j, list):
+                    raise WordNotFoundError(f"'{self.word}' is not found in the dictionary")
+                self.data = j
+        except URLError as exc:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
-        j = json.loads(res.read())
-        if not isinstance(j, list):
-            raise WordNotFoundError(f"'{self.word}' is not found in the dictionary")
-        self.data = j
+
         return self.data
 
     @property
@@ -66,17 +68,18 @@ class TDK:
         if self.links:
             return self.links
         try:
-            res = urlopen("https://sozluk.gov.tr/yazim?ara=" + self.word)
-        except Exception as exc:
+            with urlopen("https://sozluk.gov.tr/yazim?ara=" + self.word) as res:
+                j = json.loads(res.read())
+                if isinstance(j, list):
+                    for word in j:
+                        if "seskod" in word.keys() and word["seskod"]:
+                            self.links.append(
+                                "https://sozluk.gov.tr/ses/" + word["seskod"] + ".wav"
+                            )
+                    return self.links
+        except URLError as exc:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
-        j = json.loads(res.read())
-        if isinstance(j, list):
-            for word in j:
-                if "seskod" in word.keys() and word["seskod"]:
-                    self.links.append(
-                        "https://sozluk.gov.tr/ses/" + word["seskod"] + ".wav"
-                    )
-            return self.links
+
         raise NoAudioError(
             f"No audio files for '{self.word}' were found in the dictionary"
         )
@@ -92,12 +95,13 @@ class TDK:
                 path, f"{prefix}{self.word}_{i+1}{link[link.rfind('.'):]}"
             )
             try:
-                res = urlopen(link)
-            except Exception as exc:
+                with urlopen(link) as res:
+                    with open(fpath, "wb") as buf:
+                        buf.write(res.read())
+                    paths.append(fpath)
+            except URLError as exc:
                 raise NetworkError(CONNECTION_FAILED_MSG) from exc
-            with open(fpath, "wb") as buf:
-                buf.write(res.read())
-            paths.append(fpath)
+
         return paths
 
     @property
