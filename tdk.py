@@ -55,7 +55,9 @@ class TDK:
             with urlopen("https://sozluk.gov.tr/gts?ara=" + self.word) as res:
                 j = json.loads(res.read())
                 if not isinstance(j, list):
-                    raise WordNotFoundError(f"'{self.word}' is not found in the dictionary")
+                    raise WordNotFoundError(
+                        f"'{self.word}' is not found in the dictionary"
+                    )
                 self.data = j
         except URLError as exc:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
