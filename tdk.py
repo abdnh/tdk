@@ -45,6 +45,7 @@ class TDK:
         self.word = word
         self.data: Optional[List[Dict]] = None
         self.links: List[str] = []
+        self.similar: Optional[List[str]] = None
 
     @property
     def semantic_data(self) -> List[Dict]:
@@ -105,6 +106,23 @@ class TDK:
                 raise NetworkError(CONNECTION_FAILED_MSG) from exc
 
         return paths
+
+    @property
+    def similar_words(self) -> List[str]:
+        """
+        Return similar words according to the TDK dictionary.
+        Useful to offer suggestions if the word queried does not exist in the dictionary.
+        """
+        if self.similar is not None:
+            return self.similar
+        try:
+            with urlopen("https://sozluk.gov.tr/oneri?soz=" + self.word) as res:
+                j = json.loads(res.read())
+                self.similar = list(map(lambda e: e['madde'], j))
+        except URLError as exc:
+            raise NetworkError(CONNECTION_FAILED_MSG) from exc
+
+        return self.similar
 
     @property
     def compound_nouns(self) -> List[str]:
