@@ -119,7 +119,7 @@ class TDK:
         try:
             with urlopen("https://sozluk.gov.tr/oneri?soz=" + self.word) as res:
                 j = json.loads(res.read())
-                self.similar = list(map(lambda e: e['madde'], j))
+                self.similar = list(map(lambda e: e["madde"], j))
         except URLError as exc:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
 
@@ -239,6 +239,7 @@ def demo():
         ("tdk.expressions", lambda self: self.expressions),
         ("tdk.audio_links", lambda self: self.audio_links),
         ("tdk.download_audio", lambda self: self.download_audio()),
+        ("tdk.similar_words", lambda self: self.similar_words),
         ("tdk.pprint", lambda self: self.pprint()),
     ]
     for word in words:
