@@ -50,10 +50,11 @@ class TDK:
     @property
     def semantic_data(self) -> List[Dict]:
         """All raw data about the word in the dictionary except audio."""
-        if self.data:
+        if self.data is not None:
             return self.data
         try:
             with urlopen("https://sozluk.gov.tr/gts?ara=" + self.word) as res:
+                self.data = []
                 j = json.loads(res.read())
                 if not isinstance(j, list):
                     raise WordNotFoundError(
