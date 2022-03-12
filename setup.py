@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(
     name="TDK",
-    version="1.0.1",
+    version="1.1.0",
     description="Get Turkish word definitions from the TDK dictionary",
     author="Abdo",
     author_email="abd.nh25@gmail.com",

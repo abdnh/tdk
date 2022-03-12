@@ -5,10 +5,12 @@ from the TDK (Türk Dil Kurumu) dictionary.
 
 import json
 import os
+import urllib
+import urllib.error
+import urllib.parse
+import urllib.request
 from typing import Dict, List, Optional
-from urllib.request import urlopen
-from urllib.error import URLError
-from urllib.parse import quote
+
 
 __all__ = [
     "TDK",
@@ -41,13 +43,23 @@ CONNECTION_FAILED_MSG = "Connection failed"
 class TDK:
     """A class representing a dictionary query for a single word."""
 
+    "User-Agent string used to make the requests"
+    user_agent: Optional[str] = "Mozilla/5.0"
+
     def __init__(self, word: str) -> None:
         """Construct a new TDK object with the given word."""
         self.word = word
-        self.word_quoted = quote(word)
+        self.word_quoted = urllib.parse.quote(word)
         self.data: Optional[List[Dict]] = None
         self.links: List[str] = []
         self.similar: Optional[List[str]] = None
+
+    def _get_request(self, url: str) -> urllib.request.Request:
+        return urllib.request.Request(
+            url,
+            None,
+            {"User-Agent": self.user_agent},
+        )
 
     @property
     def semantic_data(self) -> List[Dict]:
@@ -55,7 +67,8 @@ class TDK:
         if self.data is not None:
             return self.data
         try:
-            with urlopen("https://sozluk.gov.tr/gts?ara=" + self.word_quoted) as res:
+            req = self._get_request("https://sozluk.gov.tr/gts?ara=" + self.word_quoted)
+            with urllib.request.urlopen(req) as res:
                 self.data = []
                 j = json.loads(res.read())
                 if not isinstance(j, list):
@@ -63,7 +76,7 @@ class TDK:
                         f"'{self.word}' is not found in the dictionary"
                     )
                 self.data = j
-        except URLError as exc:
+        except urllib.error.URLError as exc:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
 
         return self.data
@@ -74,7 +87,10 @@ class TDK:
         if self.links:
             return self.links
         try:
-            with urlopen("https://sozluk.gov.tr/yazim?ara=" + self.word_quoted) as res:
+            req = self._get_request(
+                "https://sozluk.gov.tr/yazim?ara=" + self.word_quoted
+            )
+            with urllib.request.urlopen(req) as res:
                 j = json.loads(res.read())
                 if isinstance(j, list):
                     for word in j:
@@ -83,7 +99,7 @@ class TDK:
                                 "https://sozluk.gov.tr/ses/" + word["seskod"] + ".wav"
                             )
                     return self.links
-        except URLError as exc:
+        except urllib.error.URLError as exc:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
 
         raise NoAudioError(
@@ -101,11 +117,12 @@ class TDK:
                 path, f"{prefix}{self.word}_{i+1}{link[link.rfind('.'):]}"
             )
             try:
-                with urlopen(link) as res:
+                req = self._get_request(link)
+                with urllib.request.urlopen(req) as res:
                     with open(fpath, "wb") as buf:
                         buf.write(res.read())
                     paths.append(fpath)
-            except URLError as exc:
+            except urllib.error.URLError as exc:
                 raise NetworkError(CONNECTION_FAILED_MSG) from exc
 
         return paths
@@ -119,10 +136,13 @@ class TDK:
         if self.similar is not None:
             return self.similar
         try:
-            with urlopen("https://sozluk.gov.tr/oneri?soz=" + self.word_quoted) as res:
+            req = self._get_request(
+                "https://sozluk.gov.tr/oneri?soz=" + self.word_quoted
+            )
+            with urllib.request.urlopen(req) as res:
                 j = json.loads(res.read())
                 self.similar = list(map(lambda e: e["madde"], j))
-        except URLError as exc:
+        except urllib.error.URLError as exc:
             raise NetworkError(CONNECTION_FAILED_MSG) from exc
 
         return self.similar
