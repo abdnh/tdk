@@ -28,4 +28,4 @@ Audio files will be saved in the current working directory under the names `söz
 See [tdk.py](tdk.py) for docs and available functions.
 
 ## Requirements
-* Python 3.6+
+* Python 3.7+

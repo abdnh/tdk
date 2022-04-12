@@ -3,6 +3,7 @@ Get Turkish words definitions, example sentences, pronunciations, etc.
 from the TDK (Türk Dil Kurumu) dictionary.
 """
 
+import dataclasses
 import json
 import os
 import urllib
@@ -35,6 +36,46 @@ class WordNotFoundError(TDKError):
 
 class NoAudioError(TDKError):
     pass
+
+
+@dataclasses.dataclass
+class TDKDefinition:
+    definition: str
+    examples: List[str] = dataclasses.field(default_factory=list)
+    properties: List[str] = dataclasses.field(default_factory=list)
+
+
+@dataclasses.dataclass
+class TDKEntry:
+    word: str
+    definitions: List[TDKDefinition] = dataclasses.field(default_factory=list)
+
+    def formatted(self, i: int = 0) -> str:
+        formatted = ""
+        formatted += f"- {self.word} "
+        if i > 0:
+            formatted += f"({i})\n"
+        else:
+            formatted += "\n"
+
+        for k, def_entry in enumerate(self.definitions):
+            formatted += f"{k+1:2}. "
+            if def_entry.properties:
+                formatted += "["
+                for j, prop in enumerate(def_entry.properties):
+                    formatted += prop
+                    if j < len(def_entry.properties) - 1:
+                        formatted += ", "
+                formatted += "] "
+
+            formatted += f"{def_entry.definition}\n"
+
+            for example in def_entry.examples:
+                formatted += '\t"' + example + '"' + "\n"
+        return formatted
+
+    def __str__(self) -> str:
+        return self.formatted()
 
 
 CONNECTION_FAILED_MSG = "Connection failed"
@@ -191,48 +232,52 @@ class TDK:
         return examples
 
     @property
-    def formatted(self) -> str:
-        """Return a string of word data like in a dictionary entry."""
-        formatted = ""
+    def entries(self) -> List[TDKEntry]:
+        """Return a list of all entries corresponding to this word where each entry contains definitions along with examples and properties"""
+        entries: List[TDKEntry] = []
         data = self.semantic_data
-        for i, entry in enumerate(data):
-            if "anlamlarListe" in entry.keys() and entry["anlamlarListe"]:
-                formatted += f"- {entry['madde']} "
-                if len(data) > 1:
-                    formatted += f"({i+1})\n"
-                else:
-                    formatted += "\n"
-                meanings_list = entry["anlamlarListe"]
+        for entry_obj in data:
+            if "anlamlarListe" not in entry_obj or not entry_obj["anlamlarListe"]:
+                continue
+            entry = TDKEntry(entry_obj["madde"])
+            def_list = entry_obj["anlamlarListe"]
 
-                for k, meaning in enumerate(meanings_list):
-                    formatted += f"{k+1:2}. "
+            for def_obj in def_list:
+                if "anlam" not in def_obj or not def_obj["anlam"]:
+                    continue
 
-                    # print properties
-                    if (
-                        "ozelliklerListe" in meaning.keys()
-                        and meaning["ozelliklerListe"]
-                    ):
-                        properties = meaning["ozelliklerListe"]
-                        formatted += "["
-                        for j, prop in enumerate(properties):
-                            if "tam_adi" in prop.keys():
-                                formatted += prop["tam_adi"]
-                                if j < len(properties) - 1:
-                                    formatted += ", "
-                        formatted += "] "
+                definition = TDKDefinition(def_obj["anlam"])
 
-                    # print definition
-                    if "anlam" in meaning.keys() and meaning["anlam"]:
-                        formatted += f'{meaning["anlam"]}\n'
+                if "ozelliklerListe" in def_obj and def_obj["ozelliklerListe"]:
+                    properties = def_obj["ozelliklerListe"]
+                    for prop in properties:
+                        if "tam_adi" in prop:
+                            definition.properties.append(prop["tam_adi"])
 
-                    # print examples
-                    for example in meaning.get("orneklerListe", []):
-                        if "ornek" in example.keys() and example["ornek"]:
-                            formatted += '\t"' + example["ornek"] + '"' + "\n"
+                # examples
+                for example in def_obj.get("orneklerListe", []):
+                    if "ornek" in example and example["ornek"]:
+                        definition.examples.append(example["ornek"])
+                entry.definitions.append(definition)
+
+            entries.append(entry)
+
+        return entries
+
+    @property
+    def formatted(self) -> str:
+        """Return a string of avaiable textual data of the word like in a dictionary page."""
+        formatted = ""
+        entries = self.entries
+        if len(entries) == 1:
+            formatted += f"{entries[0]}\n"
+        else:
+            for i, entry in enumerate(entries):
+                formatted += f"{entry.formatted(i+1)}\n"
         return formatted
 
     def pprint(self) -> None:
-        """Print word data like in a dictionary entry."""
+        """Print a string of avaiable textual data of the word like in a dictionary page."""
         print(self.formatted)
 
 
