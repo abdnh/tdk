@@ -190,20 +190,22 @@ class TDK:
                         examples.append(example["ornek"])
         return examples
 
-    def pprint(self) -> None:
-        """Print word data like in a dictionary entry."""
+    @property
+    def formatted(self) -> str:
+        """Return a string of word data like in a dictionary entry."""
+        formatted = ""
         data = self.semantic_data
         for i, entry in enumerate(data):
             if "anlamlarListe" in entry.keys() and entry["anlamlarListe"]:
-                print(f"- {entry['madde']} ", end="")
+                formatted += f"- {entry['madde']} "
                 if len(data) > 1:
-                    print(f"({i+1})")
+                    formatted += f"({i+1})\n"
                 else:
-                    print("\n", end="")
+                    formatted += "\n"
                 meanings_list = entry["anlamlarListe"]
 
                 for k, meaning in enumerate(meanings_list):
-                    print(f"{k+1:2}. ", end="")
+                    formatted += f"{k+1:2}. "
 
                     # print properties
                     if (
@@ -211,22 +213,27 @@ class TDK:
                         and meaning["ozelliklerListe"]
                     ):
                         properties = meaning["ozelliklerListe"]
-                        print("[", end="")
+                        formatted += "["
                         for j, prop in enumerate(properties):
                             if "tam_adi" in prop.keys():
-                                print(prop["tam_adi"], end="")
+                                formatted += prop["tam_adi"]
                                 if j < len(properties) - 1:
-                                    print(", ", end="")
-                        print("] ", end="")
+                                    formatted += ", "
+                        formatted += "] "
 
                     # print definition
                     if "anlam" in meaning.keys() and meaning["anlam"]:
-                        print(meaning["anlam"])
+                        formatted += f'{meaning["anlam"]}\n'
 
                     # print examples
                     for example in meaning.get("orneklerListe", []):
                         if "ornek" in example.keys() and example["ornek"]:
-                            print('\t"' + example["ornek"] + '"')
+                            formatted += '\t"' + example["ornek"] + '"' + "\n"
+        return formatted
+
+    def pprint(self) -> None:
+        """Print word data like in a dictionary entry."""
+        print(self.formatted)
 
 
 def main():
