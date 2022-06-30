@@ -84,7 +84,7 @@ CONNECTION_FAILED_MSG = "Connection failed"
 class TDK:
     """A class representing a dictionary query for a single word."""
 
-    "User-Agent string used to make the requests"
+    # User-Agent string used to make the requests
     user_agent: Optional[str] = "Mozilla/5.0"
 
     def __init__(self, word: str) -> None:
